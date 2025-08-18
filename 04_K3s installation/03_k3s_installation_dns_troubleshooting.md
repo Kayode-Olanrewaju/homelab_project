@@ -1,12 +1,12 @@
 # K3s Installation & DNS Troubleshooting
 
 ## 1. K3s Installation
-We installed K3s with the default Flannel CNI, disabling unnecessary components only when needed for our GitOps setup.  
+I installed K3s with the default Flannel CNI, disabling unnecessary components only when needed for our GitOps setup.  
 The command used:
 ```bash
 curl -sfL https://get.k3s.io | sh -
 ```
-Later adjustments may be made to disable the Helm controller if desired.
+I made an adjustment to disbale the helm controller as i intend to install argo or flux for GitOps.
 
 ---
 
@@ -45,7 +45,7 @@ This is a common situation on **minimal OS installs** like Arch Linux, Alpine, o
 ---
 
 ### Resolution
-We enabled `systemd-resolved` and linked its managed resolver configuration:
+I enabled `systemd-resolved` and linked its managed resolver configuration:
 ```bash
 sudo systemctl enable --now systemd-resolved
 sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
