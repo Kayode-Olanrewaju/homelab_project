@@ -1,0 +1,10 @@
+- hosts: all
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Update pacman DB and install python3, python-pip, and python-six
+      raw: sudo pacman -Sy --noconfirm python python-pip python-six
+
+    - name: Install six using pip3 (fallback if pacman fails)
+      raw: sudo pip3 install six || true

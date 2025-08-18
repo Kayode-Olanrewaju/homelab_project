@@ -64,7 +64,7 @@ To protect privacy and avoid leaking location or device information embedded in 
 **Optional:** Use **FluxCD** instead of ArgoCD.
 
 2. **Advanced Policy Enforcement**
-   - Deploy **Kyverno** + base security policies
+   - Deploy **Kyverno** + base security policies to extend       admission controllers
 
 ---
 

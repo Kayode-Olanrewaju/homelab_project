@@ -1,5 +1,5 @@
 # Ansible Bootstrap & Security Preparation for Kubernetes Home Lab
-*Arch Linux + Windows (WSL) Integration — Pre-Kubernetes Hardening Phase*
+*Arch Linux + Windows (WSL) Integration — Pre-Kernal and OS-Hardening Phase*
 
 ---
 
@@ -50,22 +50,22 @@ lsb_release -a
 ### 2. Editing `/etc/hosts` on Both Systems
 **WSL (control node):**
 ```
-10.0.0.141   oluwa
+10.0.0.141   <agent's hostname>
 ```
 **Arch Linux:**
 ```
-10.0.0.102   wsl-host
+10.0.0.102   <control's hostname>
 ```
 
 ### 3. Setting Up SSH Key Authentication
 **From WSL:**
 ```bash
-ssh-keygen -t ed25519 -C "kay_ola@home"
-ssh-copy-id user@oluwa
+ssh-keygen -t ed25519 -C "arch-linux-key"
+ssh-copy-id user@host
 ```
 If `ssh-copy-id` is unavailable:
 ```bash
-scp ~/.ssh/id_ed25519.pub user@oluwa:~/.ssh/authorized_keys
+scp ~/.ssh/id_ed25519.pub user@host:~/.ssh/authorized_keys
 ```
 
 ### 4. Adjusting Windows Firewall for ICMP
@@ -91,7 +91,7 @@ scp ~/.ssh/id_ed25519.pub user@oluwa:~/.ssh/authorized_keys
 ## Good Practices for GitHub
 - Push:
   - `bootstrap.yml`
-  - `inventory.ini` (placeholders only)
+  - `host.ini` (placeholders only)
   - Documentation
 - Avoid pushing:
   - SSH keys
@@ -109,52 +109,7 @@ scp ~/.ssh/id_ed25519.pub user@oluwa:~/.ssh/authorized_keys
 ---
 
 ## Next Step: System Hardening Before Kubernetes
-Before installing Kubernetes (K3s), harden the system:
 
-### Kernel & OS Hardening
-- **Update system packages**
-  ```bash
-  sudo pacman -Syu
-  ```
-- **Enable firewall (UFW)**
-  ```bash
-  sudo pacman -S ufw
-  sudo ufw enable
-  ```
-- **Fail2Ban for SSH protection**
-  ```bash
-  sudo pacman -S fail2ban
-  sudo systemctl enable --now fail2ban
-  ```
-- **Rootkit detection**
-  ```bash
-  sudo pacman -S rkhunter chkrootkit
-  ```
-- **Antivirus scanning**
-  ```bash
-  sudo pacman -S clamav
-  sudo freshclam
-  ```
-- **Vulnerability scanning**
-  ```bash
-  sudo pacman -S trivy
-  ```
-
----
-
-## High-Level Security Workflow Diagram
-```plaintext
-[ Initial Arch Install ]
-        |
-        v
-[ Ansible Raw Bootstrap ]
-        |
-        v
-[ Kernel & OS Hardening ]
-        |
-        v
-[ Kubernetes (K3s) Install ]
-```
 
 ---
 
