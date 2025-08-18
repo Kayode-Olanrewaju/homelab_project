@@ -7,13 +7,11 @@ This guide details the step-by-step installation of Arch Linux on a clean NVMe d
 
 A crucial note addresses adding the `nomodeset` kernel parameter to resolve graphics compatibility issues on certain hardware.
 
-We adhere to industry best practices starting with verifying ISO integrity and authenticity using GPG keys to ensure a trusted installation medium.
+The installation begins by verifying ISO integrity and authenticity using GPG keys to ensure a trusted installation medium.
 
 ---
 
 ## 1. Verifying the Arch ISO
-
-Before proceeding, verify the Arch Linux ISO for integrity and authenticity:
 
 1. Download the ISO from an official Arch Linux mirror.
 2. Download the matching `.sig` signature file.
@@ -29,62 +27,46 @@ gpg --auto-key-locate clear,wkd -v --locate-external-key <KEY_ID>
 gpg --verify archlinux-2025.08.01-x86_64.iso.sig archlinux-x86_64.iso
 ```
 
-A successful verification confirms the signature is valid and signed by a trusted Arch developer.
-
----
-
-![GPG Verification Screenshot](./images/archlinux_gpg_verification.png)
-
----
-
-✅ *With verification complete, you can proceed confidently knowing your media is authentic and untampered.*
+✅ Successful verification confirms the signature is valid and signed by a trusted Arch developer.
 
 ---
 
 ## 2. Creating a Bootable USB with Rufus
 
-On Windows, I used **Rufus** to flash the Arch Linux ISO onto a USB drive, which formats and prepares it for booting.
+On Windows, use **Rufus** to flash the Arch Linux ISO onto a USB drive.
 
-> **Note:** Select GPT partition scheme for UEFI during flashing for compatibility.
+- Select **GPT partition scheme for UEFI**.
 
 ---
 
 ## 3. Handling Graphics Issues with `nomodeset`
 
-Some hardware may cause black screens on boot. Temporarily add `nomodeset` as a kernel parameter at boot to disable kernel mode setting, allowing basic graphics until drivers are installed.
+If encountering a black screen, add `nomodeset` as a temporary kernel parameter at boot to bypass kernel mode setting.
 
 ---
 
 ## 4. BIOS/UEFI Configuration to Boot from USB
 
-1. Enter BIOS/UEFI setup (usually via `F2`, `F12`, `Del`, or `Esc` at startup).
+1. Enter BIOS/UEFI setup (F2, F12, Del, or Esc at startup).
 2. Set USB flash drive as primary boot device.
-3. Disable Secure Boot to allow booting unsigned OS images.
+3. Disable **Secure Boot**.
 4. Save and exit.
-
-> **Note:** Arch Linux’s bootloader is unsigned by default, so Secure Boot must be disabled.
 
 ---
 
 ## 5. Boot into Arch ISO
 
-![We are in](./images/booted.jpeg)
-
-![List block](./images/list_block.jpeg)
+You should now be inside the Arch Linux live environment.
 
 ---
 
-## 6. Wiping Disk with `sgdisk --zap-all`
-
-Run:
+## 6. Wiping Disk with `sgdisk`
 
 ```bash
 sudo sgdisk --zap-all /dev/nvme0n1
 ```
 
-This removes existing partition tables and metadata, ensuring a clean disk.
-
-![Wipe clean](./images/sg_disk.jpeg)
+This clears old partition tables and metadata.
 
 ---
 
@@ -92,35 +74,24 @@ This removes existing partition tables and metadata, ensuring a clean disk.
 
 Create three partitions:
 
-- EFI System Partition (1 GiB), type code EFI System (`ef00`).
-- BIOS Boot Partition (1 MiB), type code BIOS boot (`ef02`).
-- Linux LVM Partition (remaining space), type code Linux LVM (`8e00`).
-
-This layout supports both UEFI and BIOS boot modes and prepares LVM for encryption and logical volume creation.
-
-![FDisk Partitioning](images/f_disk_partitioning.jpeg)  
-![Three Partitions](images/3_partitions.jpeg)
+- EFI System Partition (1 GiB), type `ef00`
+- (Optional) BIOS Boot Partition (1 MiB), type `ef02`
+- Linux LVM Partition (remaining space), type `8e00`
 
 ---
 
 ## 8. Encrypting LVM Partition with LUKS
-
-Initialize encryption:
 
 ```bash
 cryptsetup luksFormat /dev/nvme0n1p3
 cryptsetup open /dev/nvme0n1p3 cryptlvm
 ```
 
-Create volume group inside encrypted container:
+Create LVM volume group inside encrypted container:
 
 ```bash
 vgcreate oluwa /dev/mapper/cryptlvm
 ```
-
-> **Note:** LVM enables dynamic resizing and flexible storage management, while LUKS ensures full-disk encryption, protecting data at rest against unauthorized access.
-
-![LUKS and LVM Setup](images/luks_lvm_setup.jpeg)
 
 ---
 
@@ -132,64 +103,74 @@ lvcreate -L 32G oluwa -n root
 lvcreate -l 100%FREE oluwa -n home
 ```
 
-![LVM Setup](images/lvm_setup.jpeg)
-
 ---
 
 ## 10. Formatting and Mounting
 
-- Format EFI as FAT32.
-- Format root and home as ext4.
-- Setup swap.
-- Mount root at `/mnt`.
-- Mount EFI at `/mnt/boot`.
-- Activate swap.
+```bash
+mkfs.fat -F32 /dev/nvme0n1p1
+mkfs.ext4 /dev/oluwa/root
+mkfs.ext4 /dev/oluwa/home
+mkswap /dev/oluwa/swap
+```
 
-> **Important:** Mount the root partition first; other mounts depend on this hierarchy.
+Mount:
 
-![Formatting and Mounting](images/01_format_mount.png)  
-![Formatting and Mounting](images/02_format_mount.jpeg)  
-![Formatting and Mounting](images/03_format_mount.jpeg)  
-![Formatting and Mounting](images/04_format_mount.jpeg)
+```bash
+mount /dev/oluwa/root /mnt
+mkdir /mnt/boot
+mount /dev/nvme0n1p1 /mnt/boot
+mkdir /mnt/home
+mount /dev/oluwa/home /mnt/home
+swapon /dev/oluwaswap
+```
 
 ---
 
-## 11. Installing Base System and Generating fstab
+## 11. Installing Base System
 
 ```bash
 pacstrap /mnt base linux linux-firmware lvm2 systemd-boot
 genfstab -U /mnt >> /mnt/etc/fstab
 ```
 
-![Pacstrap and fstab](images/fstab.jpeg)
-
 ---
 
 ## 12. System Configuration in chroot
 
-- Set timezone, locales, hostname.
-- Configure root password.
-- Setup networking via systemd-networkd.
+Set timezone, locales, hostname, and networking:
 
-![System Configuration](images/chroot.jpeg)
+```bash
+arch-chroot /mnt
+ln -sf /usr/share/zoneinfo/Region/City /etc/localtime
+hwclock --systohc
+echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+locale-gen
+echo "archhost" > /etc/hostname
+```
+
+Enable networking:
+
+```bash
+systemctl enable systemd-networkd
+systemctl enable systemd-resolved
+```
 
 ---
 
 ## 13. Configure mkinitcpio
 
-Edit `/etc/mkinitcpio.conf` and set:
+Edit `/etc/mkinitcpio.conf`:
 
 ```bash
 HOOKS=(base systemd autodetect modconf block sd-encrypt sd-lvm2 sd-vconsole filesystems fsck)
 ```
 
-Regenerate initramfs:
+Rebuild initramfs:
 
 ```bash
 mkinitcpio -P
 ```
-
-![mkinitcpio Configuration](images/mkinit.jpeg)
 
 ---
 
@@ -216,28 +197,30 @@ title Arch Linux
 linux /vmlinuz-linux
 initrd /intel-ucode.img
 initrd /initramfs-linux.img
-options rd.luks.name=<LUKS-UUID>=<volumegroup> root=/dev/mapper/oluwa-root rw nomodeset
+options rd.luks.name=<LUKS-UUID>=<volumegroup> root=/dev/mapper/<>-root rw nomodeset
 ```
 
 ---
 
-## 15. Base System Finalization
+## 15. User Setup
 
-Set timezone, locales, hostname, and hosts file accordingly.
+```bash
+passwd
+useradd -m -G wheel -s /bin/bash <user>
+passwd <user>
+EDITOR=vim visudo
+```
 
----
-
-## 16. User Setup
-
-- Set root password.
-- Create new user, add to `wheel` group.
-- Enable sudo for `wheel` group in `/etc/sudoers`.
-
----
-
-## 17. Storage and Boot Flow Diagram
+Uncomment:
 
 ```
+%wheel ALL=(ALL:ALL) ALL
+```
+
+---
+
+## 16. Storage and Boot Flow Diagram
+---
 +---------------------------+
 |        systemd-boot       |
 +-------------+-------------+
@@ -252,7 +235,7 @@ Set timezone, locales, hostname, and hosts file accordingly.
 +-------------+-------------+
               |
               v
-     LVM Volume Group (oluwa)
+     LVM Volume Group (volumegroup)
      +-------------------+
      |  swap  (8G)       |
      |  root  (32G)      |
@@ -261,12 +244,12 @@ Set timezone, locales, hostname, and hosts file accordingly.
               |
               v
         Mounted Filesystem
-          (/ on root LV)
+          (/ on root LV)-- home (remaining)
 ```
 
 ---
 
-## 18. Reboot and Post-installation
+## 17. Reboot
 
 ```bash
 exit
@@ -277,4 +260,38 @@ reboot
 
 ---
 
-*You now have a secure Arch Linux base system with full disk encryption and flexible volume management, ready for headless Kubernetes home lab deployment.*
+## 18. Scrubbing EXIF Metadata
+
+Photos contain sensitive metadata like GPS coordinates and device info.
+
+Install `exiftool`:
+
+```bash
+pacman -S exiftool
+```
+
+Scrub metadata:
+
+```bash
+exiftool -all= *.jpg
+```
+
+Optional Git pre-commit hook to auto-strip metadata:
+
+```bash
+#!/bin/sh
+exiftool -all= "$@"
+```
+
+---
+
+## Why the Disk Unlocks Before Boot
+
+- The root partition is LUKS encrypted.
+- `/boot` is unencrypted so the bootloader can start.
+- `sd-encrypt` hook in initramfs prompts for passphrase before mounting root.
+- Without passphrase, system cannot boot → ensuring strong security.
+
+---
+
+✅ You now have a secure Arch Linux base system with full disk encryption, flexible volume management, and metadata hygiene — ready for Kubernetes homelab deployment!
