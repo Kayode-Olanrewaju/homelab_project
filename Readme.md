@@ -9,40 +9,35 @@ This project builds a **production-inspired, security-hardened Kubernetes contro
 **Goal:** Establish a secure, encrypted Arch Linux installation.
 
 1. **Install Arch Linux** with:
+   - Verify ISO integrity with GPG before flashing.
    - **LVM with dm-crypt (LUKS)** for full disk encryption.
-   - Verified ISO integrity with GPG before flashing.
    - Systemd-based initramfs hooks for encrypted boot:
-     ```bash
-     HOOKS=(base systemd autodetect modconf block sd-encrypt sd-vconsole filesystems fsck)
-     ```
-2. **Stretch Goal:** Configure **remote LUKS unlock** via:
-   - Dropbear SSH in initramfs, or
-   - Clevis + Tang for automated decryption.
+
+
+2. ## Removing Metadata from Project Images
+To protect privacy and avoid leaking location or device information embedded in photos, all images included in this project are cleaned using `exiftool`.
 
 ---
 
-## Phase 2 — Base Security Hardening
+## Phase 2 — Base Security Hardening (Container-Ready Edition)
 **Goal:** Secure kernel, system services, and network before installing Kubernetes.
 
 1. **Firewall Configuration**
    - **UFW** (Uncomplicated Firewall):
      - Default deny inbound, allow outbound.
+     - SSH + ICMP allowed only from Windows IP
      - Allow SSH port (22) and future Kubernetes control plane ports (6443, etcd, etc.).
-   
-2. **Intrusion Prevention**
-   - **Fail2Ban** to ban IPs with repeated SSH login failures.
+2. **Kernel & Network Hardening — sysctl**
+   - Applied security-focused sysctl settings for network stack hardening and Kubernetes requirements.
+3. **Vulnerability & Package Auditing**
+   - Installed **arch-audit** for package vulnerability checks.
+   - Installed **trivy** for container image and filesystem scanning.
 
-3. **System Integrity & Malware Detection**
-   - **rkhunter** — Detect rootkits and anomalies.
-   - **chkrootkit** — Rootkit detection.
-   - **clamav** — Antivirus scanning.
-
-4. **System Auditing**
-   - **auditd** — Kernel-level auditing for events.
-   - **Arch-audit** — Detect vulnerable packages.
-
-5. **Time Synchronization**
+4. **Time Synchronization**
    - **chrony** for accurate NTP time (important for TLS, logs, cluster sync).
+5. **System Utilities for Ops & Troubleshooting**
+   - Installed tools tcpdump bind-tools htop sysstat
+
 
 ---
 
@@ -57,24 +52,19 @@ This project builds a **production-inspired, security-hardened Kubernetes contro
    - Enable `--authorization-mode=RBAC`.
    - Disable anonymous auth (`--anonymous-auth=false`).
    - Use TLS for all API traffic.
-
-3. **Pod Security**
-   - Deploy **Kyverno** for policy-as-code.
-   - Enforce non-root containers, read-only filesystem, resource limits.
-
 ---
 
-## Phase 4 — GitOps & Policy Management
+## Phase 4 — GitOps & Kyverno for Policy Management
 **Goal:** Automate cluster configuration and enforce compliance.
 
 1. **Deploy Argo CD** for GitOps:
-   - Store manifests and Helm charts in a private Git repo.
+   - Store manifests and Helm charts in a Git repo.
    - Auto-sync cluster state with repo.
 
-2. **Optional:** Use **FluxCD** instead of ArgoCD.
+**Optional:** Use **FluxCD** instead of ArgoCD.
 
-3. **Advanced Policy Enforcement**
-   - Deploy **OPA Gatekeeper** for fine-grained Kubernetes policy control.
+2. **Advanced Policy Enforcement**
+   - Deploy **Kyverno** + base security policies
 
 ---
 
@@ -110,14 +100,14 @@ This project builds a **production-inspired, security-hardened Kubernetes contro
 |  LUKS Encrypted Arch Linux|
 +---------------------------+
 | Hardened Kernel & OS      |
-| - UFW, Fail2Ban           |
-| - rkhunter, chkrootkit    |
-| - clamav, auditd, chrony  |
+| - UFW,Sysctl         |
+| - Trivy,arch-audit    |
+| - chrony  |
 +---------------------------+
 | Kubernetes Control Plane  |
 | - K3s (RBAC, TLS)         |
-| - Kyverno Policies        |
-| - OPA Gatekeeper          |
+| -         |
+          |
 +---------------------------+
 | GitOps Automation         |
 | - ArgoCD / FluxCD         |

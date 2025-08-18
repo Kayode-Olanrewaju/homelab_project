@@ -93,3 +93,36 @@ sudo ufw status verbose
 ```
 
 With this setup, only your Windows machine can ping or SSH into Arch, and all other inbound traffic is blocked. This is a strong security baseline for moving into Kubernetes (K3s) installation.
+## arch-audit: Vulnerability Awareness
+`arch-audit` checks installed packages against Arch Security Team advisories.
+- **Why now**: Before installing K3s, we verify that the base OS is not running packages with unpatched, high-risk vulnerabilities.
+- **Install**:
+```bash
+sudo pacman -S arch-audit
+```
+- **Check unpatched vulnerabilities**:
+```bash
+arch-audit -u
+```
+- **Detailed JSON output**:
+```bash
+arch-audit -j
+```
+- **Update packages**:
+```bash
+sudo pacman -Syu
+```
+
+### Vulnerability Review
+Recent output flagged several packages. Using the Arch Security Tracker:
+- **libxml2 (High, DoS)** — Fixed in `2.14.4-1`. Upgrade if below this version.
+- **pam (High, Arbitrary Filesystem Access)** — Fixed in `1.7.1-1`. Upgrade if below this version.
+- **Other packages** (coreutils, giflib, libtiff, openssl, perl, systemd, wget, linux) — Advisories present but often patched in current versions or require specific conditions to exploit.
+
+**Action Workflow**:
+1. Run `arch-audit -u`.
+2. For any High severity packages, check `security.archlinux.org` to confirm if your version is patched.
+3. If patched version available, `pacman -Syu` immediately.
+4. If no patch yet, monitor tracker for updates.
+
+This ensures you start K3s deployment with a secure, patched base OS.
