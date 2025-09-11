@@ -4,7 +4,7 @@
 I installed K3s with the default Flannel CNI, disabling unnecessary components only when needed for our GitOps setup.  
 The command used:
 ```bash
-curl -sfL https://get.k3s.io | sh -
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable-helm-controller" sh
 ```
 I made an adjustment to disbale the helm controller as i intend to install argo or flux for GitOps.
 
