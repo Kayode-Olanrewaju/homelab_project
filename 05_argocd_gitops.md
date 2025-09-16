@@ -52,13 +52,10 @@ kubectl -n argocd get pods -w
 ### 2) Install the Argo CD CLI (`argocd`)
 Pick your platform; examples:
 ```bash
-# macOS (Homebrew)
-brew install argocd
-
-# Linux x86_64 binary
-curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-chmod +x argocd && sudo mv argocd /usr/local/bin/
+# ArchLinux (pacman)
+pacman -S argocd
 ```
+![argocd](./images/argocd.jpg) 
 
 ### 3) Log into Argo CD
 Expose the API/UI. For a lab, port‑forward is simplest:
@@ -75,7 +72,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d; echo
 
 # Login via CLI
-argocd login localhost:8080 --username admin --password <above> --insecure
+argocd login <argocd-host-server> --username admin --password <above> --insecure
 ```
 
 ### 4) Rotate credentials: delete the bootstrap secret & set a new password
@@ -153,6 +150,14 @@ kubectl -n guestbook get events --sort-by=.metadata.creationTimestamp | tail -n 
 kubectl -n guestbook port-forward svc/guestbook-ui 8080:80
 # visit http://localhost:8080
 ```
+![argocd2](./images/argocd-2.jpg) 
+
+---
+
+### 10) Scale-Up to confirm GitOps
+I edited the deployment manifest in the github to scale to 2 replicas.
+
+![argocd3](./images/argocd-3.jpg)
 
 ---
 
